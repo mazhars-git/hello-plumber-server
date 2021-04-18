@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const MongoClient = require('mongodb').MongoClient;
+const ObjectID = require('mongodb').ObjectID;
 const fileUpload = require('express-fileupload');
 const fs = require('fs-extra');
 require('dotenv').config();
@@ -13,7 +14,8 @@ const app = express()
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.cpoqr.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '10mb'}));
+app.use(bodyParser.urlencoded({limit: '10mb', extended: true}));
 app.use(cors());
 
 app.use(express.static('services'));
@@ -33,6 +35,7 @@ client.connect(err => {
   const serviceCollection = client.db("plumberService").collection("services");
   const reviewCollection = client.db("plumberService").collection("reviews");
   const adminCollection = client.db("plumberService").collection("admins");
+  const orderCollection = client.db("plumberService").collection("orders");
 
   app.post('/addAService', (req, res) =>{
     const file = req.files.file;
@@ -51,7 +54,6 @@ client.connect(err => {
     .then(result => {
       res.send(result.insertedCount > 0)
     })
-    // console.log(file, title, description);
   });
 
   app.get('/services', (req, res) => {
@@ -60,6 +62,13 @@ client.connect(err => {
             res.send(documents);
         })
   });
+
+  app.get('/service/:id', (req, res) => {
+    serviceCollection.find({_id: ObjectID(req.params.id)})
+    .toArray((err, documents) => {
+      res.send(documents[0])
+    })
+  })
 
   app.post('/addReview', (req, res) =>{
     const file = req.files.file;
@@ -94,8 +103,26 @@ client.connect(err => {
     .then(result => {
       res.send(result.insertedCount > 0)
     })
-    console.log(newAdmin);
   });
+
+  app.post('/isAdmin', (req, res) => {
+    const email = req.body.email;
+    adminCollection.find({ email: email })
+        .toArray((err, admins) => {
+            res.send(admins.length > 0);
+        })
+  })
+
+  app.post('/addOrder', (req, res) => {
+    const newOrder = req.body;
+    console.log('order', newOrder)
+    orderCollection.insertOne(newOrder)
+    .then(result => {
+      res.send(result.insertedCount > 0)
+    })
+  })
+
+
 
 });
 
