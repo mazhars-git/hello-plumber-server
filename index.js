@@ -14,8 +14,7 @@ const app = express()
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.cpoqr.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-app.use(bodyParser.json({limit: '10mb'}));
-app.use(bodyParser.urlencoded({limit: '10mb', extended: true}));
+app.use(bodyParser.json());
 app.use(cors());
 
 app.use(express.static('services'));
@@ -52,6 +51,7 @@ client.connect(err => {
 
     serviceCollection.insertOne({title, description, image})
     .then(result => {
+      console.log(result)
       res.send(result.insertedCount > 0)
     })
   });
@@ -122,6 +122,19 @@ client.connect(err => {
     })
   })
 
+  app.get('/orders', (req, res) => {
+    orderCollection.find({})
+        .toArray((err, documents) => {
+            res.send(documents);
+        })
+  })
+
+  app.get('/orders', (req, res) => {
+    orderCollection.find({email: req.query.email})
+        .toArray((err, documents) => {
+            res.send(documents);
+        })
+  })
 
 
 });
